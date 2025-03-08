@@ -41,19 +41,20 @@ This project aims to:
 - Integration of perception systems (ESP32-CAM with OpenCV)
 - Benchmark: Process 50g volcanic ash in controlled environment
 
-### 2026 Q1-Q2: System Integration \& Advanced Testing
+### 2026 Q1-Q2: Field Testing \& Environmental Validation
 
+- Arctic testing at Svalbard (72h continuous operation)
 - Sensor fusion implementation
-- Extended duration testing (8-12 hour operations)
-- Environment-hardened prototype development
+- Target: 5kg/30min excavation benchmark
 - TRL-3 validation through environmental testing
 
 ### 2026 Q3-Q4 and Beyond
 
-- Field testing in relevant environments (budget permitting)
+- Atacama Desert field trials
+- Electrostatic regolith separation testing
 - Progressive scaling of prototype capabilities
-- Electrostatic regolith separation testing (simulation first, hardware later)
-- Collaboration with research institutions for advanced testing environments
+- Collaboration with research institutions for advanced testing
+- Scaling for eventual lunar deployment
 
 ## Dependencies
 
