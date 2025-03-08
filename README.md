@@ -25,22 +25,35 @@ This project aims to:
 
 ## Development Roadmap
 
-### 2025 Q1-Q2: Foundation & Simulation
-- Initial ROS 2/Gazebo setup with lunar terrain simulation
-- Prototype hardware integration
-- Benchmark: Process 50g volcanic ash (regolith analog)
-- Data collection: Excavation rate (g/min) and power consumption (W)
+### 2025 Q1-Q2: Simulation Foundation
 
-### 2025 Q3-Q4: Field Testing & Validation
-- Arctic testing at Svalbard (72h continuous operation)
+- ROS 2 Humble + Gazebo 11 environment setup with Bekker-Wong terrain modeling
+- Development of lunar regolith excavation simulation model
+- Creation of Harvesting Algorithm v0.5 for autonomous operation
+- Simulation benchmarks: Virtual excavation rate ≥5g/min at <50W power consumption
+- Data collection framework for performance metrics and optimization
+
+### 2025 Q3-Q4: Hardware Prototyping \& Initial Testing
+
+- Simulation-to-hardware transition as funding permits
+- 1:10 scale prototype development using cost-effective components
+- Backyard testing with volcanic ash (regolith analog)
+- Integration of perception systems (ESP32-CAM with OpenCV)
+- Benchmark: Process 50g volcanic ash in controlled environment
+
+### 2026 Q1-Q2: System Integration \& Advanced Testing
+
 - Sensor fusion implementation
-- Target: 5kg/30min excavation benchmark
+- Extended duration testing (8-12 hour operations)
+- Environment-hardened prototype development
 - TRL-3 validation through environmental testing
 
-### 2026 and Beyond
-- Atacama Desert field trials
-- Electrostatic regolith separation testing
-- Scaling for eventual lunar deployment
+### 2026 Q3-Q4 and Beyond
+
+- Field testing in relevant environments (budget permitting)
+- Progressive scaling of prototype capabilities
+- Electrostatic regolith separation testing (simulation first, hardware later)
+- Collaboration with research institutions for advanced testing environments
 
 ## Dependencies
 
