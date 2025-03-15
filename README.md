@@ -92,7 +92,7 @@ cd ~/aspect_ws/src
 ```
 Clone this repository
 ```bash
-git clone https://github.com/bk-bf/aspect_ros2_gazebo11.git
+git clone https://github.com/bk-bf/aspect_ros2_gazebo.git
 ```
 Install dependencies
 ```bash
