@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<sdf version="1.4">
+  <world name="default">
+    <!-- A global light source -->
+    <include>
+        <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Sun</uri>
+    </include>
+    
+    <model name="heightmap">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <heightmap>
+              <!-- Updated URI to point to your lunar DEM -->
+	          <uri>package://media/dem/resampled_lunar_south_pole.dem</uri>
+              <!-- Adjusted size to match lunar terrain dimensions -->
+              <size>1000 1000 500</size>
+              <!-- Updated position for realistic placement -->
+              <pos>0 0 -250</pos>
+            </heightmap>
+          </geometry>
+        </collision>
+
+        <visual name="visual_lunar">
+          <geometry>
+            <heightmap>
+              <!-- Optional textures for visual representation -->
+              <texture>
+                <diffuse>file://media/materials/textures/dirt_diffusespecular.png</diffuse>
+                <normal>file://media/materials/textures/flat_normal.png</normal>
+                <size>1</size>
+              </texture>
+              <texture>
+                <diffuse>file://media/materials/textures/rock_diffusespecular.png</diffuse>
+                <normal>file://media/materials/textures/flat_normal.png</normal>
+                <size>1</size>
+              </texture>
+              <blend>
+                <!-- Adjust blending heights for lunar terrain -->
+                <min_height>10</min_height>
+                <fade_dist>20</fade_dist>
+              </blend>
+              <blend>
+                <min_height>30</min_height>
+                <fade_dist>20</fade_dist>
+              </blend>
+
+              <!-- Updated URI to point to your lunar DEM -->
+              <uri>file://media/dem/resampled_lunar_south_pole.dem</uri>
+              <!-- Adjusted size to match lunar terrain dimensions -->
+              <size>1000 1000 500</size>
+              <!-- Updated position for realistic placement -->
+              <pos>0 0 -250</pos>
+            </heightmap>
+          </geometry>
+        </visual>
+
+      </link>
+    </model>
+
+  </world>
+</sdf>
