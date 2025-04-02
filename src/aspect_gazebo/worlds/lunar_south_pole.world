@@ -1,7 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.4">
   <world name="default">
-    <!-- A global light source -->
     <include>
         <uri>https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Sun</uri>
     </include>
@@ -12,12 +11,12 @@
         <collision name="collision">
           <geometry>
             <heightmap>
-              <!-- Updated URI to point to your lunar DEM -->
-	          <uri>package://media/dem/resampled_lunar_south_pole.dem</uri>
-              <!-- Adjusted size to match lunar terrain dimensions -->
-              <size>1000 1000 500</size>
-              <!-- Updated position for realistic placement -->
-              <pos>0 0 -250</pos>
+              <!-- absolute paths are very cringe but at least it works right?) -->
+              <uri>/home/kirill/Documents/vs_code_ws/aspect_rover/src/aspect_gazebo/media/dem/lunar_south_pole_resized.png</uri>
+              <!-- size: real-world dimensions (width_meters, length_meters, height_meters) -->
+              <size>40000 40000 7094</size>
+              <pos>0 0 0</pos>
+              <sampling>2</sampling>
             </heightmap>
           </geometry>
         </collision>
@@ -25,39 +24,14 @@
         <visual name="visual_lunar">
           <geometry>
             <heightmap>
-              <!-- Optional textures for visual representation -->
-              <texture>
-                <diffuse>file://media/materials/textures/dirt_diffusespecular.png</diffuse>
-                <normal>file://media/materials/textures/flat_normal.png</normal>
-                <size>1</size>
-              </texture>
-              <texture>
-                <diffuse>file://media/materials/textures/rock_diffusespecular.png</diffuse>
-                <normal>file://media/materials/textures/flat_normal.png</normal>
-                <size>1</size>
-              </texture>
-              <blend>
-                <!-- Adjust blending heights for lunar terrain -->
-                <min_height>10</min_height>
-                <fade_dist>20</fade_dist>
-              </blend>
-              <blend>
-                <min_height>30</min_height>
-                <fade_dist>20</fade_dist>
-              </blend>
-
-              <!-- Updated URI to point to your lunar DEM -->
-              <uri>file://media/dem/resampled_lunar_south_pole.dem</uri>
-              <!-- Adjusted size to match lunar terrain dimensions -->
-              <size>1000 1000 500</size>
-              <!-- Updated position for realistic placement -->
-              <pos>0 0 -250</pos>
+              <uri>/home/kirill/Documents/vs_code_ws/aspect_rover/src/aspect_gazebo/media/dem/lunar_south_pole_resized.png</uri>
+              <size>40000 40000 7094</size>
+              <pos>0 0 0</pos>
+              <sampling>2</sampling>
             </heightmap>
           </geometry>
         </visual>
-
       </link>
     </model>
-
   </world>
 </sdf>
