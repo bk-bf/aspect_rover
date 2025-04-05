@@ -12,7 +12,7 @@
           <geometry>
             <heightmap>
               <!-- absolute paths are very cringe but at least it works right?) -->
-              <uri>/home/kirill/Documents/vs_code_ws/aspect_rover/src/aspect_gazebo/media/dem/lunar_south_pole_resized.png</uri>
+              <uri>/home/kirill/Documents/vs_code_ws/aspect_rover/src/aspect_gazebo/media/dem/lunar_dem_southpole_test.png</uri>
               <!-- size: real-world dimensions (width_meters, length_meters, height_meters) -->
               <size>40000 40000 7094</size>
               <pos>0 0 0</pos>
@@ -24,7 +24,7 @@
         <visual name="visual_lunar">
           <geometry>
             <heightmap>
-              <uri>/home/kirill/Documents/vs_code_ws/aspect_rover/src/aspect_gazebo/media/dem/lunar_south_pole_resized.png</uri>
+              <uri>/home/kirill/Documents/vs_code_ws/aspect_rover/src/aspect_gazebo/media/dem/lunar_dem_southpole_test.png</uri>
               <size>40000 40000 7094</size>
               <pos>0 0 0</pos>
               <sampling>2</sampling>
