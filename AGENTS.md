@@ -28,8 +28,8 @@ For any significant change (new feature, refactor, multi-file edit), create a wo
 and work there instead of directly on `main`:
 
 ```bash
-git worktree add ../aspect-<feature> -b feature/<feature>
-# work in ../aspect-<feature>, then PR back to main
+git worktree add features/<feature> -b feature/<feature>
+# work in features/<feature>, then PR back to main
 ```
 
 Significant = new package, behaviour change, anything that could break a passing build.
