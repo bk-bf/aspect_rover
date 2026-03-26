@@ -14,6 +14,16 @@ Keep this file ≤ LOC cap. After any meaningful session:
 - Section grown verbose? Extract to `.docs/` and replace with a backlink.
 - Update the `<!-- LOC cap -->` date after each edit.
 
+## Git Workflow
+
+```bash
+git add . && git commit -m "feat: <description>" && git push origin main
+ssh -T git@github.com   # verify SSH: "Hi bk-bf!..."
+```
+
+Prefixes: `feat:` `fix:` `docs:` `refactor:` `test:` `chore:` `wip:`  
+Commit and push via SSH after every meaningful change.
+
 ---
 
 ## Repository Layout
@@ -127,16 +137,6 @@ gz service -s /world/lunar_south_pole/control \
 **ament_cmake:** CMake ≥ 3.8, `-Wall -Wextra -Wpedantic`, `ament_lint_auto` in `BUILD_TESTING`.
 
 ---
-
-## Git Workflow
-
-```bash
-git add . && git commit -m "feat: <description>" && git push origin main
-ssh -T git@github.com   # verify SSH: "Hi bk-bf!..."
-```
-
-Prefixes: `feat:` `fix:` `docs:` `refactor:` `test:` `chore:` `wip:`  
-Commit and push via SSH after every meaningful change.
 
 ---
 
