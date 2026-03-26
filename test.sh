@@ -4,7 +4,15 @@
 # Usage: bash test.sh
 # T-D3 (keyboard teleop) is skipped — requires interactive TTY.
 
-set -euo pipefail
+set -eo pipefail   # no -u: colcon's generated setup.bash uses unbound vars
+
+# Guard: must run inside the container where ROS 2 is installed
+if [[ ! -f /opt/ros/jazzy/setup.bash ]]; then
+    echo "ERROR: ROS 2 Jazzy not found. Run this script inside the container:"
+    echo "  docker compose -f .docker/docker-compose.yml exec aspect_dev bash"
+    echo "  # or: rocker --x11 --nvidia --user --volume \$(pwd):/workspace aspect:jazzy"
+    exit 1
+fi
 
 # ── colours ──────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
@@ -33,7 +41,7 @@ else
     pass "Prerequisites: 6 packages built"
 fi
 # shellcheck source=/dev/null
-source install/setup.bash
+set +u; source install/setup.bash; set -u
 
 # ── T-L1 — Linter ─────────────────────────────────────────────────────────────
 echo ""
