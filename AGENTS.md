@@ -24,6 +24,16 @@ ssh -T git@github.com   # verify SSH: "Hi bk-bf!..."
 Prefixes: `feat:` `fix:` `docs:` `refactor:` `test:` `chore:` `wip:`  
 Commit and push via SSH after every meaningful change.
 
+For any significant change (new feature, refactor, multi-file edit), create a worktree
+and work there instead of directly on `main`:
+
+```bash
+git worktree add ../aspect-<feature> -b feature/<feature>
+# work in ../aspect-<feature>, then PR back to main
+```
+
+Significant = new package, behaviour change, anything that could break a passing build.
+
 ---
 
 ## Repository Layout
