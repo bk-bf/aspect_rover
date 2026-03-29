@@ -12,6 +12,13 @@
   <exec_depend>nav_msgs</exec_depend>
   <exec_depend>aspect_msgs</exec_depend>
 
+  <!-- Nav2 costmap + global planner (T-010) -->
+  <exec_depend>nav2_costmap_2d</exec_depend>
+  <exec_depend>nav2_planner</exec_depend>
+  <exec_depend>nav2_navfn_planner</exec_depend>
+  <exec_depend>nav2_bt_navigator</exec_depend>
+  <exec_depend>nav2_lifecycle_manager</exec_depend>
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
