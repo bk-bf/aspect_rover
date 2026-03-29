@@ -22,15 +22,15 @@ def generate_launch_description():
     return LaunchDescription(
         [
             Node(
-                package="aspect_navigation",
-                executable="simple_waypoint_nav",
-                name="simple_waypoint_nav",
-                output="screen",
+                package='aspect_navigation',
+                executable='simple_waypoint_nav',
+                name='simple_waypoint_nav',
+                output='screen',
                 parameters=[
                     {
-                        "acceptance_radius": 0.5,
-                        "linear_speed": 0.2,
-                        "angular_speed": 0.5,
+                        'acceptance_radius': 0.5,
+                        'linear_speed': 0.2,
+                        'angular_speed': 0.5,
                     }
                 ],
             ),
