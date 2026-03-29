@@ -24,6 +24,8 @@ ssh -T git@github.com   # verify SSH: "Hi bk-bf!..."
 Prefixes: `feat:` `fix:` `docs:` `refactor:` `test:` `chore:` `wip:`  
 Commit and push via SSH after every meaningful change.
 
+To run tests against a worktree: `bash test.sh --worktree <name>`
+
 **Always** create a worktree before starting any significant change — do not work
 directly on `main`. Significant = new package, behaviour change, anything that could
 break a passing build.
