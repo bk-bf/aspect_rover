@@ -1,17 +1,39 @@
 #!/usr/bin/env bash
 # test.sh — ASPECT integration test runner
 # Run INSIDE the container from the workspace root (/workspace).
-# Usage: bash test.sh
+# Usage: bash test.sh [--worktree <name>]
+#   --worktree <name>  run tests against features/<name> worktree instead of main
 # T-D3 (keyboard teleop) is skipped — requires interactive TTY.
 
 set -eo pipefail   # no -u: colcon's generated setup.bash uses unbound vars
 
+# ── Parse --worktree flag ─────────────────────────────────────────────────────
+WORKTREE_NAME=""
+PASSTHROUGH_ARGS=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --worktree)
+            [[ -z "${2:-}" ]] && { echo "ERROR: --worktree requires a name"; exit 1; }
+            WORKTREE_NAME="$2"; shift 2 ;;
+        *) PASSTHROUGH_ARGS+=("$1"); shift ;;
+    esac
+done
+
 # If not inside the container, re-exec via docker compose
 if [[ ! -f /opt/ros/jazzy/setup.bash ]]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    echo "Not inside container — re-launching via docker compose..."
-    docker compose -f "$SCRIPT_DIR/.docker/docker-compose.yml" \
-        run --rm -w /workspace aspect_dev bash /workspace/test.sh "$@"
+
+    if [[ -n "$WORKTREE_NAME" ]]; then
+        WORKTREE_PATH="$SCRIPT_DIR/features/$WORKTREE_NAME"
+        [[ -d "$WORKTREE_PATH" ]] || { echo "ERROR: worktree not found: $WORKTREE_PATH"; exit 1; }
+        echo "Not inside container — re-launching in worktree '$WORKTREE_NAME' via docker compose..."
+        docker compose -f "$WORKTREE_PATH/.docker/docker-compose.yml" \
+            run --rm -w /workspace aspect_dev bash /workspace/test.sh "${PASSTHROUGH_ARGS[@]}"
+    else
+        echo "Not inside container — re-launching via docker compose..."
+        docker compose -f "$SCRIPT_DIR/.docker/docker-compose.yml" \
+            run --rm -w /workspace aspect_dev bash /workspace/test.sh "${PASSTHROUGH_ARGS[@]}"
+    fi
     exit $?
 fi
 
