@@ -22,6 +22,13 @@ Current phase: **Phase 0** (2026 Q1). Completed items move to [`../archive/READM
 
 > Goal: finish the scaffolded nodes so the packages are functional, not just
 > compilable. Copyright headers unblock the linter re-enable.
+>
+> Parallel tracks:
+> - **Track A — linter hygiene** (T-003 → T-004): sequential pair, no external deps
+> - **Track B — nav2 foundation** (T-010): independent of Track A; touches different packages
+>
+> T-003/T-004 and T-010 can run in separate worktrees simultaneously.
+> T-005 deferred — box geometry sufficient until Phase 2 hardware design is finalised.
 
 - [x] T-001 [`aspect_control`]: Implement keyboard input in `teleop_node.py` (termios raw mode)
 - [x] T-002 [`aspect_navigation`]: Expose `/goto_waypoint` service in `simple_waypoint_nav.py`
@@ -34,33 +41,55 @@ Current phase: **Phase 0** (2026 Q1). Completed items move to [`../archive/READM
 
 > Goal: rover autonomously excavates 50 g+ regolith in simulation at ≥ 80% success
 > rate. TRL-3. Requires Priority 1 complete.
+>
+> Parallel tracks:
+> - **Track A — sim/nav** (T-101 → T-105 → T-107): nav2 integration, then terrain tuning,
+>   then stability CI; each step gates the next
+> - **Track B — hardware-model + RL** (T-102 → T-103 → T-104): scoop URDF, then gym env,
+>   then baseline PPO; sequential within the track, independent of Track A
+> - **Track C — EKF validation** (T-106): needs sim running (T-101 unblocks it) but does not
+>   depend on nav2 planner output; can run alongside T-105
+>
+> T-103 and T-104 depend on both T-101 (sim must be navigable) and T-102 (scoop must exist),
+> so Track B cannot fully start until T-101 is done. T-102 alone can start immediately.
 
 - [ ] T-101 [`aspect_navigation`]: Nav2 stack integration (costmap, global + local planner)
 - [ ] T-102 [`aspect_description`]: Excavation scoop URDF + articulation joint
-- [ ] T-103 [`aspect_gazebo`]: gymnasium environment wrapping Gazebo sim *(implements D-007 — gymnasium + SB3 framework choice)*
-- [ ] T-104: Baseline PPO training — SB3 Zoo defaults *(CPU-only proof-of-concept; goal is to validate gym env + reward function before GPU spend — see D-007, D-008)*
-- [ ] T-105: Lunar terrain Nav2 parameter tuning
-- [ ] T-106 [`aspect_bringup`]: Sensor fusion — wheel odometry + IMU via EKF validated in sim
-- [ ] T-107: 30-minute stability test passing in CI
+- [ ] T-103 [`aspect_gazebo`]: gymnasium environment wrapping Gazebo sim *(implements D-007 — gymnasium + SB3 framework choice; needs T-101 + T-102)*
+- [ ] T-104: Baseline PPO training — SB3 Zoo defaults *(CPU-only proof-of-concept; goal is to validate gym env + reward function before GPU spend — see D-007, D-008; needs T-103)*
+- [ ] T-105: Lunar terrain Nav2 parameter tuning *(needs T-101)*
+- [ ] T-106 [`aspect_bringup`]: Sensor fusion — wheel odometry + IMU via EKF validated in sim *(needs T-101; parallel with T-105)*
+- [ ] T-107: 30-minute stability test passing in CI *(needs T-101, T-105, T-106)*
 
 ### Priority 4 — Phase 2: Hardware V1 + RL Production Training (2026 Q3–2027 Q1)
 
 > Goal: physical 1:10 prototype driving in lab; RL policy achieving 20 g+ excavation
 > in simulation. TRL-4. Cloud GPU budget ~$80.
+>
+> Parallel tracks (per D-010):
+> - **Track A — hardware chain** (T-201 → T-202 → T-203 → T-204 → T-205): each step
+>   depends on the previous; builds up to full EKF fusion on real hardware
+> - **Track B — RL production** (T-206 → T-207): cloud GPU migration, then hyperparam
+>   search; sequential within the track, independent of Track A
+>
+> T-208 (field trial) needs both tracks complete — it is the join point for this phase.
 
 - [ ] T-201: RPi 4B bring-up with ROS 2 Jazzy
-- [ ] T-202: GY-521 IMU driver node
-- [ ] T-203: Faulhaber 1524 / SG90 motor driver node
-- [ ] T-204: ESP32-CAM ROS 2 video stream
-- [ ] T-205: EKF fusion — wheel odometry + IMU on hardware
+- [ ] T-202: GY-521 IMU driver node *(needs T-201)*
+- [ ] T-203: Faulhaber 1524 / SG90 motor driver node *(needs T-201)*
+- [ ] T-204: ESP32-CAM ROS 2 video stream *(needs T-201)*
+- [ ] T-205: EKF fusion — wheel odometry + IMU on hardware *(needs T-202, T-203)*
 - [ ] T-206: Cloud GPU migration (Vast.ai / RunPod); checkpoint auto-save to HF Hub *(executes D-008 gates 2–3; implements D-009 model storage)*
-- [ ] T-207: Hyperparameter search (SB3 Zoo ablations, 10 runs) *(blocked by D-008 budget gate — do not start until T-206 complete and $80 budget confirmed)*
-- [ ] T-208: Backyard excavation trial with regolith analog (≥ 5 g/min target)
+- [ ] T-207: Hyperparameter search (SB3 Zoo ablations, 10 runs) *(blocked by D-008 budget gate — do not start until T-206 complete and $80 budget confirmed; needs T-206)*
+- [ ] T-208: Backyard excavation trial with regolith analog (≥ 5 g/min target) *(needs T-205 + T-207)*
 
 ### Priority 5 — Phase 3: Integrated ISRU Prototype (2027 Q2–2028 Q1)
 
 > Goal: end-to-end water extraction demonstrated on bench. TRL-4 → TRL-5.
 > 1:5 scale chassis. Cloud GPU budget ~$155. Requires T-208 field data.
+>
+> Parallelism at this horizon is not yet planned in detail — dependencies will be
+> mapped when Phase 2 is within one quarter of completion.
 
 - [ ] T-301: 1:5 scale chassis with Faulhaber motors throughout
 - [ ] T-302: Heated auger thermal extraction subsystem
