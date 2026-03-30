@@ -6,11 +6,11 @@ FROM osrf/ros:jazzy-desktop
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && curl -sSL https://packages.osrfoundation.org/gazebo.gpg \
-       -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg \
+    -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] \
-       http://packages.osrfoundation.org/gazebo/ubuntu-stable \
-       $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
-       > /etc/apt/sources.list.d/gazebo-stable.list
+    http://packages.osrfoundation.org/gazebo/ubuntu-stable \
+    $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
+    > /etc/apt/sources.list.d/gazebo-stable.list
 
 # ── System packages ────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
