@@ -40,16 +40,21 @@ fi
 
 # ── docker daemon lifecycle ───────────────────────────────────────────────────
 STARTED_DOCKER=false
-if ! docker info &>/dev/null 2>&1; then
+if ! sudo docker info &>/dev/null 2>&1; then
     echo "Docker daemon not running — starting it..."
     sudo systemctl start docker
+    # wait for socket to be ready (up to 10 s)
+    for i in $(seq 1 10); do
+        sudo docker info &>/dev/null 2>&1 && break
+        sleep 1
+    done
     STARTED_DOCKER=true
 fi
 
 cleanup() {
     if [[ "$STARTED_DOCKER" == true ]]; then
         echo "Stopping Docker daemon (we started it)..."
-        sudo systemctl stop docker
+        sudo systemctl stop docker docker.socket
     fi
 }
 trap cleanup EXIT
@@ -58,7 +63,7 @@ echo "Workspace : $WORKSPACE"
 echo "DISPLAY   : $DISPLAY"
 echo "Launching RViz2 URDF viewer..."
 
-docker run --rm -it \
+sudo docker run --rm -it \
     -e DISPLAY="$DISPLAY" \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device /dev/dri \
