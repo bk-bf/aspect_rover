@@ -148,23 +148,24 @@ $ALL_TOPICS_OK && pass "T-S1: all required topics present"
 # Verifies that gz-sim-joint-state-publisher-system is publishing both auger
 # joints.  Does NOT require /excavation/cmd — that is wired in T-103.
 echo ""
-echo "=== T-A1: Auger joint state — joints present in /model/aspect_rover/joint_states ==="
+echo "=== T-A1: Auger joint state — joints present in /joint_states ==="
 AUGER_JOINTS=("auger_feed_joint" "auger_rotation_joint")
 A1_OK=true
 
 # Wait up to 10 s for the joint_states topic to appear
-if ! python3 "$_HELPERS" wait_for_topic /model/aspect_rover/joint_states 10 \
+# (bridge remaps /model/aspect_rover/joint_states → /joint_states on ROS 2 side)
+if ! python3 "$_HELPERS" wait_for_topic /joint_states 10 \
         > /dev/null 2>&1; then
-    fail "T-A1: /model/aspect_rover/joint_states not present after 10 s"
+    fail "T-A1: /joint_states not present after 10 s"
     A1_OK=false
 else
-    JS_MSG=$(timeout 6 ros2 topic echo /model/aspect_rover/joint_states --once \
+    JS_MSG=$(timeout 6 ros2 topic echo /joint_states --once \
                  2>/dev/null || true)
     for jnt in "${AUGER_JOINTS[@]}"; do
         if echo "$JS_MSG" | grep -qF "$jnt"; then
             info "  found joint: $jnt"
         else
-            fail "T-A1: joint '$jnt' not found in /model/aspect_rover/joint_states"
+            fail "T-A1: joint '$jnt' not found in /joint_states"
             A1_OK=false
         fi
     done
@@ -181,12 +182,12 @@ if ! $A1_OK; then
     fail "T-A2: skipped — T-A1 failed (joint_states not available)"
 else
     FEED_POS=$(python3 "$_HELPERS" joint_state_field auger_feed_joint position \
-                   /model/aspect_rover/joint_states 2>/dev/null || true)
+                   /joint_states 2>/dev/null || true)
     ROT_POS=$(python3 "$_HELPERS" joint_state_field auger_rotation_joint position \
-                  /model/aspect_rover/joint_states 2>/dev/null || true)
+                  /joint_states 2>/dev/null || true)
 
     if [[ -z "$FEED_POS" ]]; then
-        fail "T-A2: could not read auger_feed_joint position from joint_states"
+        fail "T-A2: could not read auger_feed_joint position from /joint_states"
     elif awk "BEGIN{v=${FEED_POS}+0; if(v<0)v=-v; exit !(v < 0.001)}"; then
         pass "T-A2: auger_feed_joint position=${FEED_POS} (≈ 0.0, retracted)"
     else
@@ -194,7 +195,7 @@ else
     fi
 
     if [[ -z "$ROT_POS" ]]; then
-        fail "T-A2: could not read auger_rotation_joint position from joint_states"
+        fail "T-A2: could not read auger_rotation_joint position from /joint_states"
     elif awk "BEGIN{v=${ROT_POS}+0; if(v<0)v=-v; exit !(v < 0.001)}"; then
         pass "T-A2: auger_rotation_joint position=${ROT_POS} (≈ 0.0, stationary)"
     else

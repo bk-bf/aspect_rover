@@ -76,7 +76,7 @@ Verifies that Gazebo publishes both auger joints after T-102 URDF is loaded.
 ```bash
 ros2 launch aspect_bringup launch_lunar_south_pole.py
 # second shell:
-ros2 topic echo /model/aspect_rover/joint_states --once | grep -E 'auger'
+ros2 topic echo /joint_states --once | grep -E 'auger'
 ```
 
 Pass: `auger_feed_joint` and `auger_rotation_joint` both appear in the `name:` array.
@@ -93,11 +93,11 @@ rotation joint starts at 0.0 (stationary at sim start).
 ```bash
 # Using test_helpers.py directly:
 python3 src/aspect_scripts/test_helpers.py \
-    joint_state_field auger_feed_joint position /model/aspect_rover/joint_states
+    joint_state_field auger_feed_joint position /joint_states
 # Expected: 0.0
 
 python3 src/aspect_scripts/test_helpers.py \
-    joint_state_field auger_rotation_joint position /model/aspect_rover/joint_states
+    joint_state_field auger_rotation_joint position /joint_states
 # Expected: 0.0
 ```
 

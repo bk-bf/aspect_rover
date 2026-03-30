@@ -137,7 +137,7 @@ def lifecycle_state(node):
 
 
 def joint_state_field(joint_name, field="position",
-                      topic="/model/aspect_rover/joint_states"):
+                      topic="/joint_states"):
     """Extract a scalar field for a named joint from a single JointState message.
 
     Calls ``ros2 topic echo <topic> --once``, finds the index of *joint_name*
@@ -271,7 +271,7 @@ if __name__ == "__main__":
             sys.exit(1)
         _joint = sys.argv[2]
         _field = sys.argv[3]
-        _topic = sys.argv[4] if len(sys.argv) > 4 else "/model/aspect_rover/joint_states"
+        _topic = sys.argv[4] if len(sys.argv) > 4 else "/joint_states"
         result = joint_state_field(_joint, _field, _topic)
         if result:
             print(result)
