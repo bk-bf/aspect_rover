@@ -217,12 +217,8 @@
         <color rgba="0.75 0.75 0.75 1.0"/>
       </material>
     </visual>
-    <collision>
-      <origin xyz="0 0 ${-(auger_length / 2)}" rpy="0 0 0"/>
-      <geometry>
-        <cylinder radius="${auger_radius}" length="${auger_length}"/>
-      </geometry>
-    </collision>
+    <!-- No collision: auger spawns below ground plane (mount is flush with chassis
+         bottom at -0.02m world-z); terrain contact added with real mesh in T-301. -->
     <inertial>
       <origin xyz="0 0 ${-(auger_length / 2)}" rpy="0 0 0"/>
       <mass value="${auger_mass * 0.6}"/>
@@ -260,12 +256,7 @@
         <color rgba="0.9 0.5 0.1 1.0"/>
       </material>
     </visual>
-    <collision>
-      <origin xyz="0 0 ${-(auger_length * 0.9 / 2)}" rpy="0 0 0"/>
-      <geometry>
-        <cylinder radius="${auger_radius * 0.7}" length="${auger_length * 0.9}"/>
-      </geometry>
-    </collision>
+    <!-- No collision: see auger_housing_link note above. -->
     <inertial>
       <origin xyz="0 0 ${-(auger_length * 0.9 / 2)}" rpy="0 0 0"/>
       <mass value="${auger_mass * 0.4}"/>
