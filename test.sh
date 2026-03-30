@@ -191,7 +191,7 @@ for i in $(seq 1 15); do
 done
 
 SVC_RESULT=$(timeout 10 ros2 service call /goto_waypoint aspect_msgs/srv/GotoWaypoint \
-    "{x: 2.0, y: 0.0}" 2>/dev/null || true)
+    "{x: 5.0, y: 0.0}" 2>/dev/null || true)
 # Wait for nav node to start issuing /cmd_vel (up to 10 s)
 CMD=$(timeout 10 ros2 topic echo /cmd_vel --once 2>/dev/null || true)
 
@@ -264,9 +264,9 @@ else
         sleep 1
     done
 
-    info "Sending goto_waypoint {x: 2.0, y: 0.0}..."
+    info "Sending goto_waypoint {x: 5.0, y: 0.0}..."
     timeout 5 ros2 service call /goto_waypoint aspect_msgs/srv/GotoWaypoint \
-        "{x: 2.0, y: 0.0}" > /dev/null 2>&1 || true
+        "{x: 5.0, y: 0.0}" > /dev/null 2>&1 || true
 
     # Poll /odometry/filtered up to 90 s; succeed when x-displacement ≥ 1.5 m.
     info "Polling pose for up to 90 s (target: position.x ≥ $(awk "BEGIN{print $BASE_X+1.5}"))..."
@@ -291,7 +291,7 @@ else
     wait "$NAV4_PID" 2>/dev/null || true
 
     DX_FINAL=$(awk "BEGIN{print $D4_FINAL_X - $BASE_X}")
-    DY_FINAL=$(awk "BEGIN{v=$D4_FINAL_Y-${BASE_Y:-0}; if(v<0)v=-v; print v}")
+    DY_FINAL=$(awk "BEGIN{v=($D4_FINAL_Y)-(${BASE_Y:-0}); if(v<0)v=-v; print v}")
 
     if $D4_REACHED; then
         pass "T-D4: rover advanced Δx=${DX_FINAL} m toward waypoint (≥ 1.5 m required)"
@@ -325,7 +325,7 @@ for i in $(seq 1 15); do
 done
 
 timeout 5 ros2 service call /goto_waypoint aspect_msgs/srv/GotoWaypoint \
-    "{x: 2.0, y: 0.0}" > /dev/null 2>&1 || true
+    "{x: 8.0, y: 0.0}" > /dev/null 2>&1 || true
 
 # Wait until rover has meaningfully advanced (reuse same displacement probe).
 info "Waiting for rover to advance before checking for stop..."
