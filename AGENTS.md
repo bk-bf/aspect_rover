@@ -1,4 +1,4 @@
-<!-- LOC cap: 165 (source: 825, ratio: 0.20, updated: 2026-03-29) -->
+<!-- LOC cap: 166 (source: 830, ratio: 0.20, updated: 2026-03-30) -->
 # AGENTS.md — ASPECT Rover Codebase Guide
 
 **Stack:** ROS 2 Jazzy · Gazebo Harmonic · Python · C++ · Docker · uv  
@@ -33,9 +33,12 @@ break a passing build.
 ```bash
 # start
 git worktree add features/<feature> -b feature/<feature>
-# work in features/<feature>, then PR back to main
+# work in features/<feature>, then merge directly to main — no PRs
 
-# after PR merged to main
+# merge and clean up
+git checkout main
+git merge --no-ff feature/<feature> -m "feat: <description>"
+git push origin main
 git worktree remove features/<feature>
 git branch -d feature/<feature>
 git push origin --delete feature/<feature>
@@ -122,10 +125,8 @@ gz service -s /world/lunar_south_pole/control \
   --reqtype gz.msgs.WorldControl --reptype gz.msgs.Boolean \
   --timeout 5000 --req 'pause: false'
 # Expected reply: data: true
-# Without this: /clock silent, EKF logs "Waiting for clock..."
 ```
-
-**3. `/clock` bridge lazy** — see B-011 in `.docs/bugs/BUGS.md`; allow ~30 s warmup.
+**3. `/clock` bridge lazy** — see B-011 in `.docs/bugs/BUGS.md`; poll for `/clock sec > 0` before drive tests (~12 s post-unpause).
 
 ---
 
