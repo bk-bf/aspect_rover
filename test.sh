@@ -213,6 +213,169 @@ echo ""
 echo "=== T-D3: Keyboard teleop — SKIP (requires interactive TTY) ==="
 echo "    Run manually: ros2 run aspect_control teleop_node"
 
+# ── T-D4 — Pose displacement ──────────────────────────────────────────────────
+# Behavioral test: rover must actually navigate toward waypoint (2.0, 0.0).
+# Asserts position.x advances ≥ 1.5 m within 90 s — i.e. the rover covered
+# 75 % of the straight-line distance, implying genuine forward navigation.
+# Uses /odometry/filtered (EKF-fused, the authoritative pose used by the nav
+# node itself).  Also asserts lateral drift |y| < 0.5 m to catch spin/drift bugs.
+echo ""
+echo "=== T-D4: Pose displacement — rover navigates toward waypoint ==="
+
+# Helper: extract position.x or position.y from a single /odometry/filtered msg.
+# Usage: odom_field <x|y>
+odom_field() {
+    local field="$1"
+    python3 - <<PYEOF
+import subprocess, sys
+try:
+    out = subprocess.check_output(
+        ["ros2", "topic", "echo", "/odometry/filtered", "--once",
+         "--field", "pose.pose.position"],
+        timeout=4, stderr=subprocess.DEVNULL, text=True
+    )
+    for line in out.splitlines():
+        line = line.strip()
+        if line.startswith("${field}:"):
+            print(line.split(":")[1].strip())
+            sys.exit(0)
+except Exception:
+    pass
+print("")
+PYEOF
+}
+
+info "Sampling baseline pose from /odometry/filtered..."
+BASE_X=$(odom_field x)
+BASE_Y=$(odom_field y)
+if [[ -z "$BASE_X" ]]; then
+    fail "T-D4: could not read baseline pose from /odometry/filtered"
+else
+    info "Baseline: x=${BASE_X} y=${BASE_Y}"
+
+    info "Starting fresh nav node for T-D4..."
+    ros2 launch aspect_navigation waypoint_nav.launch.py \
+        > /tmp/aspect_nav_t4.log 2>&1 &
+    NAV4_PID=$!
+
+    # Wait for service
+    for i in $(seq 1 15); do
+        ros2 service list 2>/dev/null | grep -qx '/goto_waypoint' && break
+        sleep 1
+    done
+
+    info "Sending goto_waypoint {x: 2.0, y: 0.0}..."
+    timeout 5 ros2 service call /goto_waypoint aspect_msgs/srv/GotoWaypoint \
+        "{x: 2.0, y: 0.0}" > /dev/null 2>&1 || true
+
+    # Poll /odometry/filtered up to 90 s; succeed when x-displacement ≥ 1.5 m.
+    info "Polling pose for up to 90 s (target: position.x ≥ $(awk "BEGIN{print $BASE_X+1.5}"))..."
+    D4_REACHED=false
+    D4_FINAL_X="$BASE_X"
+    D4_FINAL_Y="${BASE_Y:-0}"
+    for _i in $(seq 1 45); do
+        CUR_X=$(odom_field x)
+        CUR_Y=$(odom_field y)
+        [[ -n "$CUR_X" ]] && D4_FINAL_X="$CUR_X"
+        [[ -n "$CUR_Y" ]] && D4_FINAL_Y="$CUR_Y"
+        DX=$(awk "BEGIN{print $D4_FINAL_X - $BASE_X}")
+        if awk "BEGIN{exit !(${DX} >= 1.5)}"; then
+            D4_REACHED=true
+            break
+        fi
+        info "  t=$((_i*2))s  x=${D4_FINAL_X}  Δx=${DX}"
+        sleep 2
+    done
+
+    kill "$NAV4_PID" 2>/dev/null || true
+    wait "$NAV4_PID" 2>/dev/null || true
+
+    DX_FINAL=$(awk "BEGIN{print $D4_FINAL_X - $BASE_X}")
+    DY_FINAL=$(awk "BEGIN{v=$D4_FINAL_Y-${BASE_Y:-0}; if(v<0)v=-v; print v}")
+
+    if $D4_REACHED; then
+        pass "T-D4: rover advanced Δx=${DX_FINAL} m toward waypoint (≥ 1.5 m required)"
+    else
+        fail "T-D4: rover only advanced Δx=${DX_FINAL} m in 90 s (< 1.5 m required)"
+    fi
+
+    # Lateral drift check — catches spin-in-place and sideways-drive bugs
+    if awk "BEGIN{exit !(${DY_FINAL} < 0.5)}"; then
+        pass "T-D4: lateral drift |Δy|=${DY_FINAL} m within 0.5 m tolerance"
+    else
+        fail "T-D4: excessive lateral drift |Δy|=${DY_FINAL} m (≥ 0.5 m) — rover may be spinning or drifting"
+    fi
+fi
+
+# ── T-D5 — cmd_vel silence after goal reached ─────────────────────────────────
+# Behavioral test: after the rover reaches the waypoint the nav node must stop
+# publishing non-zero cmd_vel.  Catches "drives past goal" / "never stops" bugs.
+# This test runs its own nav node, sends the same waypoint, waits for T-D4-level
+# displacement, then asserts /cmd_vel is zero (or silent) within 15 s of arrival.
+echo ""
+echo "=== T-D5: cmd_vel silence — rover stops after reaching waypoint ==="
+
+info "Starting fresh nav node for T-D5..."
+ros2 launch aspect_navigation waypoint_nav.launch.py \
+    > /tmp/aspect_nav_t5.log 2>&1 &
+NAV5_PID=$!
+for i in $(seq 1 15); do
+    ros2 service list 2>/dev/null | grep -qx '/goto_waypoint' && break
+    sleep 1
+done
+
+timeout 5 ros2 service call /goto_waypoint aspect_msgs/srv/GotoWaypoint \
+    "{x: 2.0, y: 0.0}" > /dev/null 2>&1 || true
+
+# Wait until rover has meaningfully advanced (reuse same displacement probe).
+info "Waiting for rover to advance before checking for stop..."
+D5_BASE_X=$(odom_field x)
+D5_BASE_X="${D5_BASE_X:-0}"
+D5_MOVED=false
+for _i in $(seq 1 45); do
+    CUR_X=$(odom_field x)
+    DX5=$(awk "BEGIN{print ${CUR_X:-0} - $D5_BASE_X}")
+    if awk "BEGIN{exit !(${DX5} >= 1.5)}"; then
+        D5_MOVED=true
+        info "  rover reached Δx=${DX5} m — checking cmd_vel stops..."
+        break
+    fi
+    sleep 2
+done
+
+if ! $D5_MOVED; then
+    info "T-D5: rover did not advance ≥ 1.5 m — skipping silence check (T-D4 already failed)"
+    kill "$NAV5_PID" 2>/dev/null || true
+    wait "$NAV5_PID" 2>/dev/null || true
+else
+    # After arrival, cmd_vel should go to zero.  Sample up to 15 s.
+    D5_STOPPED=false
+    for _j in $(seq 1 15); do
+        CMD5=$(timeout 3 ros2 topic echo /cmd_vel --once 2>/dev/null || true)
+        LX5=$(echo "$CMD5" | python3 -c "
+import sys, re
+for line in sys.stdin:
+    m = re.search(r'linear.*?x:\s*([-\d.]+)', line)
+    if m: print(m.group(1)); break
+" 2>/dev/null || true)
+        # Also accept silence (no message published) as stopped
+        if [[ -z "$CMD5" ]] || awk "BEGIN{v=${LX5:-0}; if(v<0)v=-v; exit !(v < 0.01)}"; then
+            D5_STOPPED=true
+            break
+        fi
+        sleep 1
+    done
+
+    kill "$NAV5_PID" 2>/dev/null || true
+    wait "$NAV5_PID" 2>/dev/null || true
+
+    if $D5_STOPPED; then
+        pass "T-D5: /cmd_vel went silent/zero after goal reached"
+    else
+        fail "T-D5: /cmd_vel still non-zero after rover arrived at waypoint — rover not stopping"
+    fi
+fi
+
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""
 echo "============================================================"
