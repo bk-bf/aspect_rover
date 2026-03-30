@@ -46,6 +46,10 @@ info() { echo -e "${YELLOW}....${NC}  $1"; }
 # ── Python parsing helpers ───────────────────────────────────────────────────
 _HELPERS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/src/aspect_scripts/test_helpers.py"
 
+# ── Persistent log directory (survives container exit via workspace mount) ────
+LOG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/logs"
+mkdir -p "$LOG_DIR"
+
 FAILURES=()
 SIM_PID=""
 
@@ -60,8 +64,8 @@ trap cleanup EXIT
 
 # ── Prerequisites — build ─────────────────────────────────────────────────────
 echo "=== Prerequisites: build ==="
-if colcon build --symlink-install 2>&1 | tee /tmp/aspect_build.log | grep -q "^ERROR"; then
-    fail "Prerequisites: build failed — check /tmp/aspect_build.log"
+if colcon build --symlink-install 2>&1 | tee $LOG_DIR/aspect_build.log | grep -q "^ERROR"; then
+    fail "Prerequisites: build failed — check $LOG_DIR/aspect_build.log"
     exit 1
 else
     pass "Prerequisites: 6 packages built"
@@ -75,19 +79,19 @@ echo "=== T-L1: Linter ==="
 if colcon test \
         --packages-select aspect_bringup aspect_control aspect_navigation \
         --event-handlers console_cohesion+ \
-        2>&1 | tee /tmp/aspect_lint.log \
-   && colcon test-result --verbose 2>&1 | tee -a /tmp/aspect_lint.log \
+        2>&1 | tee $LOG_DIR/aspect_lint.log \
+   && colcon test-result --verbose 2>&1 | tee -a $LOG_DIR/aspect_lint.log \
    | grep -qE "0 errors, 0 failures"; then
     pass "T-L1: linter clean"
 else
-    fail "T-L1: linter failures — check /tmp/aspect_lint.log"
+    fail "T-L1: linter failures — check $LOG_DIR/aspect_lint.log"
 fi
 
 # ── Launch sim in background ──────────────────────────────────────────────────
 echo ""
 echo "=== Starting sim (background) ==="
 ros2 launch aspect_bringup launch_lunar_south_pole.py \
-    > /tmp/aspect_sim.log 2>&1 &
+    > $LOG_DIR/aspect_sim.log 2>&1 &
 SIM_PID=$!
 info "Sim PID $SIM_PID — waiting 15 s for startup..."
 sleep 15
@@ -179,7 +183,7 @@ echo ""
 echo "=== T-D2: Waypoint service ==="
 info "Starting waypoint nav node..."
 ros2 launch aspect_navigation waypoint_nav.launch.py \
-    > /tmp/aspect_nav.log 2>&1 &
+    > $LOG_DIR/aspect_nav.log 2>&1 &
 NAV_PID=$!
 
 # Wait up to 15 s for the service to become available
@@ -239,7 +243,7 @@ else
 
     info "Starting fresh nav node for T-D4..."
     ros2 launch aspect_navigation waypoint_nav.launch.py \
-        > /tmp/aspect_nav_t4.log 2>&1 &
+        > $LOG_DIR/aspect_nav_t4.log 2>&1 &
     NAV4_PID=$!
 
     # Wait for service
@@ -298,7 +302,7 @@ echo "=== T-D5: cmd_vel silence — rover stops after reaching waypoint ==="
 
 info "Starting fresh nav node for T-D5..."
 ros2 launch aspect_navigation waypoint_nav.launch.py \
-    > /tmp/aspect_nav_t5.log 2>&1 &
+    > $LOG_DIR/aspect_nav_t5.log 2>&1 &
 NAV5_PID=$!
 python3 "$_HELPERS" wait_for_service /goto_waypoint 15 > /dev/null 2>&1 || true
 
@@ -312,7 +316,7 @@ D5_BASE_X="${D5_BASE_X:-0}"
 D5_MOVED=false
 for _i in $(seq 1 45); do
     CUR_X=$(odom_field x)
-    DX5=$(awk "BEGIN{print ${CUR_X:-0} - $D5_BASE_X}")
+    DX5=$(awk "BEGIN{print (${CUR_X:-0}) - ($D5_BASE_X)}")
     if awk "BEGIN{exit !(${DX5} >= 1.5)}"; then
         D5_MOVED=true
         info "  rover reached Δx=${DX5} m — checking cmd_vel stops..."
@@ -348,6 +352,71 @@ else
         fail "T-D5: /cmd_vel still non-zero after rover arrived at waypoint — rover not stopping"
     fi
 fi
+
+# ── T-N1 + T-N2 — Nav2 lifecycle then NavigateToPose ─────────────────────────
+# Both tests share a single nav2.launch.py instance to avoid the DDS
+# deregistration race that occurs when the same node names are re-launched
+# within a few seconds of each other (FastDDS heartbeat timeout ~10 s).
+#
+# T-N1: all three lifecycle nodes reach 'active'
+# T-N2: NavigateToPose goal → DWB produces non-zero /cmd_vel
+echo ""
+echo "=== T-N1 + T-N2: Nav2 lifecycle + NavigateToPose (shared launch) ==="
+
+info "Starting nav2.launch.py..."
+ros2 launch aspect_navigation nav2.launch.py \
+    > $LOG_DIR/aspect_nav2.log 2>&1 &
+NAV2_PID=$!
+
+NAV2_NODES="/controller_server,/planner_server,/bt_navigator"
+info "Waiting up to 45 s for all Nav2 nodes to reach 'active' (T-N1)..."
+if python3 "$_HELPERS" wait_for_lifecycle_active "$NAV2_NODES" 45; then
+    pass "T-N1: all Nav2 nodes reached lifecycle 'active'"
+else
+    fail "T-N1: one or more Nav2 nodes did not reach 'active' within 45 s (see $LOG_DIR/aspect_nav2.log)"
+fi
+
+# T-N2: only run if T-N1 passed (nodes are active)
+echo ""
+echo "=== T-N2: NavigateToPose — DWB publishes non-zero /cmd_vel ==="
+N1_PASSED=true
+for _n in $(echo "$NAV2_NODES" | tr ',' ' '); do
+    STATE=$(python3 "$_HELPERS" lifecycle_state "$_n" 2>/dev/null || true)
+    [[ "$STATE" == "active" ]] || { N1_PASSED=false; break; }
+done
+
+if ! $N1_PASSED; then
+    fail "T-N2: skipped — Nav2 nodes not active (T-N1 failed)"
+else
+    info "Sending NavigateToPose goal {x: 15.0, y: 0.0, frame_id: odom}..."
+    ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose \
+        "{pose: {header: {frame_id: odom}, pose: {position: {x: 15.0, y: 0.0, z: 0.0}, orientation: {w: 1.0}}}}" \
+        > $LOG_DIR/aspect_nav2_goal.log 2>&1 &
+    GOAL_PID=$!
+
+    info "Sampling /cmd_vel for up to 20 s (expecting non-zero DWB output)..."
+    N2_GOT_VEL=false
+    for _i in $(seq 1 20); do
+        CMD_N2=$(timeout 3 ros2 topic echo /cmd_vel --once 2>/dev/null || true)
+        LX_N2=$(echo "$CMD_N2" | python3 "$_HELPERS" parse_twist_linear_x 2>/dev/null || true)
+        if [[ -n "$CMD_N2" ]] && awk "BEGIN{v=${LX_N2:-0}; if(v<0)v=-v; exit !(v > 0.01)}"; then
+            N2_GOT_VEL=true
+            break
+        fi
+        sleep 1
+    done
+
+    kill "$GOAL_PID" 2>/dev/null || true
+
+    if $N2_GOT_VEL; then
+        pass "T-N2: /cmd_vel received non-zero DWB output after NavigateToPose goal"
+    else
+        fail "T-N2: /cmd_vel did not receive non-zero output within 20 s (see $LOG_DIR/aspect_nav2.log)"
+    fi
+fi
+
+kill "$NAV2_PID" 2>/dev/null || true
+wait "$NAV2_PID" 2>/dev/null || true
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo ""

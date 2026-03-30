@@ -3,6 +3,9 @@ build/
 install/
 log/
 
+# Test logs (written by test.sh)
+logs/
+
 # Colcon files
 .colcon_cd_root
 

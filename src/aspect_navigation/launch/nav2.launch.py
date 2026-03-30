@@ -25,6 +25,16 @@ def generate_launch_description():
     nav_pkg = get_package_share_directory('aspect_navigation')
     nav2_params = os.path.join(nav_pkg, 'config', 'nav2_params.yaml')
 
+    # ── Nav2 controller server (DWB local planner) ───────────────────────
+    controller_server = Node(
+        package='nav2_controller',
+        executable='controller_server',
+        name='controller_server',
+        output='screen',
+        parameters=[nav2_params],
+        remappings=[('cmd_vel', '/cmd_vel')],
+    )
+
     # ── Nav2 global planner (NavFn / Dijkstra) ────────────────────────────
     planner_server = Node(
         package='nav2_planner',
@@ -56,6 +66,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            controller_server,
             planner_server,
             bt_navigator,
             lifecycle_manager,

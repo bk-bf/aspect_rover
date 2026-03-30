@@ -48,9 +48,9 @@ Current phase: **Phase 0** (2026 Q1). Completed items move to [`../archive/READM
 > T-107 is the join point for Group B — requires T-105 + T-106 both complete.
 
 [PARALLEL A — start immediately, no shared deps]
-- [ ] T-101 [`aspect_navigation`]: Nav2 stack integration (costmap, global + local planner)
+- [x] T-101 [`aspect_navigation`]: Nav2 stack integration (costmap, global + local planner)
 - [ ] T-102 [`aspect_description`]: Excavation scoop URDF + articulation joint
-- [ ] T-108 [infra]: Refactor `test.sh` — extract ROS message parsing into `src/aspect_scripts/test_helpers.py`; bash retains process orchestration (`colcon`, `docker`, `gz service`), Python handles structured parsing (`odom_field`, `wait_for_topic`, clock sampling) *(no ROS deps; parallel with any Group A task)*
+- [x] T-108 [infra]: Refactor `test.sh` — extract ROS message parsing into `src/aspect_scripts/test_helpers.py`; bash retains process orchestration (`colcon`, `docker`, `gz service`), Python handles structured parsing (`odom_field`, `wait_for_topic`, clock sampling)
 
 [PARALLEL B — unblocked once T-101 is done]
 - [ ] T-105: Lunar terrain Nav2 parameter tuning *(needs T-101)*

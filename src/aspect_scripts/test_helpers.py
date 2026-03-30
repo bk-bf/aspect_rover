@@ -10,6 +10,8 @@ CLI usage::
     python3 test_helpers.py wait_for_clock [max_wait_seconds]
     python3 test_helpers.py wait_for_topic <topic> [max_wait_seconds]
     python3 test_helpers.py wait_for_service <service> [max_wait_seconds]
+    python3 test_helpers.py lifecycle_state <node>
+    python3 test_helpers.py wait_for_lifecycle_active <node1,node2,...> [max_wait_seconds]
     echo "$MSG" | python3 test_helpers.py parse_twist_linear_x
 """
 
@@ -116,6 +118,38 @@ def parse_twist_linear_x(text):
     return m.group(1) if m else ""
 
 
+def lifecycle_state(node):
+    """Return the lifecycle state string for *node*, or '' on failure.
+
+    Calls ``ros2 lifecycle get <node>`` and extracts the state keyword
+    (e.g. ``active``, ``inactive``, ``unconfigured``).
+    """
+    try:
+        out = subprocess.check_output(
+            ["ros2", "lifecycle", "get", node],
+            timeout=5, stderr=subprocess.DEVNULL, text=True
+        )
+        m = re.search(r"\b(active|inactive|unconfigured|finalized)\b", out)
+        return m.group(1) if m else ""
+    except Exception:
+        return ""
+
+
+def wait_for_lifecycle_active(nodes, max_wait=45):
+    """Poll until all *nodes* reach lifecycle state ``active``.
+
+    *nodes* is a list of fully-qualified node names (e.g. ``['/controller_server']``).
+    Returns a dict mapping node → state on success, or an empty dict on timeout.
+    """
+    deadline = time.time() + max_wait
+    while time.time() < deadline:
+        states = {n: lifecycle_state(n) for n in nodes}
+        if all(s == "active" for s in states.values()):
+            return states
+        time.sleep(1)
+    return {}
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print(__doc__)
@@ -157,6 +191,27 @@ if __name__ == "__main__":
     elif cmd == "parse_twist_linear_x":
         text = sys.stdin.read()
         print(parse_twist_linear_x(text))
+
+    elif cmd == "lifecycle_state":
+        if len(sys.argv) < 3:
+            print("Usage: lifecycle_state <node>", file=sys.stderr)
+            sys.exit(1)
+        print(lifecycle_state(sys.argv[2]))
+
+    elif cmd == "wait_for_lifecycle_active":
+        if len(sys.argv) < 3:
+            print("Usage: wait_for_lifecycle_active <node1,node2,...> [max_wait]",
+                  file=sys.stderr)
+            sys.exit(1)
+        _nodes = [n.strip() for n in sys.argv[2].split(",") if n.strip()]
+        max_wait = int(sys.argv[3]) if len(sys.argv) > 3 else 45
+        result = wait_for_lifecycle_active(_nodes, max_wait)
+        if result:
+            for n, s in result.items():
+                print(f"{n}: {s}")
+            sys.exit(0)
+        else:
+            sys.exit(1)
 
     else:
         print(f"Unknown command: {cmd}", file=sys.stderr)
