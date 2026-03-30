@@ -69,6 +69,44 @@ Pass: `/navigate_to_pose` and `/navigate_through_poses` action servers present.
 
 ---
 
+## T-A1 — Auger joint state topic
+
+Verifies that Gazebo publishes both auger joints after T-102 URDF is loaded.
+
+```bash
+ros2 launch aspect_bringup launch_lunar_south_pole.py
+# second shell:
+ros2 topic echo /model/aspect_rover/joint_states --once | grep -E 'auger'
+```
+
+Pass: `auger_feed_joint` and `auger_rotation_joint` both appear in the `name:` array.
+
+*Automated by `test.sh` T-A1 block.*
+
+---
+
+## T-A2 — Auger joints at initial retracted position
+
+Confirms the prismatic feed joint starts at 0.0 (fully retracted) and the
+rotation joint starts at 0.0 (stationary at sim start).
+
+```bash
+# Using test_helpers.py directly:
+python3 src/aspect_scripts/test_helpers.py \
+    joint_state_field auger_feed_joint position /model/aspect_rover/joint_states
+# Expected: 0.0
+
+python3 src/aspect_scripts/test_helpers.py \
+    joint_state_field auger_rotation_joint position /model/aspect_rover/joint_states
+# Expected: 0.0
+```
+
+Pass: both positions are `≈ 0.0` (absolute value < 0.001).
+
+*Automated by `test.sh` T-A2 block.*
+
+---
+
 ## T-D1 — Manual drive
 
 ```bash
@@ -115,6 +153,9 @@ Pass: `w` → forward velocity on `/cmd_vel`; `space` → zeros; `q` → clean e
 | T-D2 waypoint service | 2026-03-26 | PASS | `success=True`; cmd_vel linear.x=0.2 |
 | T-D3 keyboard teleop | — | SKIP | Requires interactive TTY; not automatable |
 
+| T-A1 auger joint topics | — | — | Requires container + T-102 URDF |
+| T-A2 auger initial position | — | — | Requires container + T-102 URDF |
+
 ### Known issues / fixes made during testing
 
 | Issue | Fix |
@@ -139,3 +180,4 @@ Pass: `w` → forward velocity on `/cmd_vel`; `space` → zeros; `q` → clean e
 | EKF `/odometry/filtered` | Requires clock to stabilise (~12 s); bridge lazy-connects |
 | nav2 costmap | T-010 complete; T-N1 smoke test result pending (run in container) |
 | 30-min stability | T-107, Phase 1 |
+| Auger `/excavation/cmd` response | T-103 (gym env wires up AugerCmd subscriber) — T-A3 planned |

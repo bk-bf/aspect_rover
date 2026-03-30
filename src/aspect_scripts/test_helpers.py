@@ -12,6 +12,7 @@ CLI usage::
     python3 test_helpers.py wait_for_service <service> [max_wait_seconds]
     python3 test_helpers.py lifecycle_state <node>
     python3 test_helpers.py wait_for_lifecycle_active <node1,node2,...> [max_wait_seconds]
+    python3 test_helpers.py joint_state_field <joint_name> <position|velocity|effort> [topic]
     echo "$MSG" | python3 test_helpers.py parse_twist_linear_x
 """
 
@@ -135,6 +136,55 @@ def lifecycle_state(node):
         return ""
 
 
+def joint_state_field(joint_name, field="position",
+                      topic="/model/aspect_rover/joint_states"):
+    """Extract a scalar field for a named joint from a single JointState message.
+
+    Calls ``ros2 topic echo <topic> --once``, finds the index of *joint_name*
+    in the ``name[]`` array, then returns the corresponding value from
+    *field* (``"position"``, ``"velocity"``, or ``"effort"``).
+    Returns the value as a string (e.g. ``"0.0"``), or ``''`` on failure.
+    """
+    out = _ros2_echo_once(topic, timeout=6)
+    if not out:
+        return ""
+    lines = out.splitlines()
+
+    # Parse name[] into an ordered list
+    names = []
+    in_names = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped == "name:":
+            in_names = True
+            continue
+        if in_names:
+            if stripped.startswith("- "):
+                names.append(stripped[2:].strip())
+            else:
+                in_names = False
+
+    if joint_name not in names:
+        return ""
+    idx = names.index(joint_name)
+
+    # Parse the target field[] array and pick value at the same index
+    values = []
+    in_field = False
+    for line in lines:
+        stripped = line.strip()
+        if stripped == f"{field}:":
+            in_field = True
+            continue
+        if in_field:
+            if stripped.startswith("- "):
+                values.append(stripped[2:].strip())
+            else:
+                in_field = False
+
+    return values[idx] if idx < len(values) else ""
+
+
 def wait_for_lifecycle_active(nodes, max_wait=45):
     """Poll until all *nodes* reach lifecycle state ``active``.
 
@@ -209,6 +259,22 @@ if __name__ == "__main__":
         if result:
             for n, s in result.items():
                 print(f"{n}: {s}")
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
+    elif cmd == "joint_state_field":
+        # Usage: joint_state_field <joint_name> <position|velocity|effort> [topic]
+        if len(sys.argv) < 4:
+            print("Usage: joint_state_field <joint_name> <position|velocity|effort> [topic]",
+                  file=sys.stderr)
+            sys.exit(1)
+        _joint = sys.argv[2]
+        _field = sys.argv[3]
+        _topic = sys.argv[4] if len(sys.argv) > 4 else "/model/aspect_rover/joint_states"
+        result = joint_state_field(_joint, _field, _topic)
+        if result:
+            print(result)
             sys.exit(0)
         else:
             sys.exit(1)
