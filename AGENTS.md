@@ -35,7 +35,7 @@ break a passing build.
 git worktree add features/<feature> -b feature/<feature>
 # work in features/<feature>, then merge directly to main — no PRs
 
-# merge and clean up
+# merge and clean up — DO NOT execute without explicit user instruction
 git checkout main
 git merge --no-ff feature/<feature> -m "feat: <description>"
 git push origin main
