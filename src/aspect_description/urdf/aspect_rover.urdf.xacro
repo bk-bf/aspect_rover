@@ -20,6 +20,17 @@
   <xacro:property name="wheelbase_x"  value="0.05"/>
   <xacro:property name="wheelbase_y"  value="0.055"/>
 
+  <!-- Auger dimensions (Phase 1 box-geometry stub) -->
+  <!--   auger_radius  = drill radius (m)                               -->
+  <!--   auger_length  = body/housing length (m)                        -->
+  <!--   auger_feed_travel = max prismatic travel downward (m)          -->
+  <!--   nominal rotation ~120 RPM = 12.57 rad/s                        -->
+  <!--   nominal feed velocity 10 mm/s = 0.01 m/s                      -->
+  <xacro:property name="auger_radius"      value="0.015"/>
+  <xacro:property name="auger_length"      value="0.08"/>
+  <xacro:property name="auger_feed_travel" value="0.05"/>
+  <xacro:property name="auger_mass"        value="0.060"/>
+
   <!-- ======================== Base links ======================== -->
 
   <link name="base_footprint"/>
@@ -154,6 +165,131 @@
     <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
   </joint>
 
+  <!-- ======================== Excavation Auger ======================== -->
+
+  <!--
+    Phase 1 stub: box-geometry drill body sufficient to unblock T-103 gym env.
+    Two articulation joints:
+      auger_feed_joint     — prismatic along -Z (vertical feed, 0–50 mm travel)
+      auger_rotation_joint — continuous around Z (drill spin, ≤12.57 rad/s)
+    ROS 2 interface (bridged via ros_gz_bridge):
+      publishes  /excavation/joint_state  (sensor_msgs/JointState)
+      subscribes /excavation/cmd          (aspect_msgs/AugerCmd: rpm, feed_rate)
+    Phase 3 thermal extension (T-302): add resistive heating plugin to
+    auger_housing_link — plugin slot reserved in <gazebo> block below.
+    TODO: replace cylinder geometry with mesh once T-302 hardware design is final.
+    Reference: NASA LADI auger architecture (AIAA 2023-4758). See D-013, D-014.
+  -->
+
+  <!-- Mount bracket — fixed to front-bottom of chassis -->
+  <link name="auger_mount_link">
+    <visual>
+      <geometry>
+        <box size="0.01 0.01 0.005"/>
+      </geometry>
+      <material name="dark_grey">
+        <color rgba="0.3 0.3 0.3 1.0"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0.005"/>
+      <inertia ixx="0.000001" ixy="0.0" ixz="0.0"
+               iyy="0.000001" iyz="0.0"
+               izz="0.000001"/>
+    </inertial>
+  </link>
+
+  <joint name="auger_mount_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="auger_mount_link"/>
+    <!-- Front-centre, flush with chassis bottom -->
+    <origin xyz="${chassis_length / 2} 0 ${-(chassis_height / 2)}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Auger housing — translates vertically (vertical feed axis) -->
+  <link name="auger_housing_link">
+    <visual>
+      <origin xyz="0 0 ${-(auger_length / 2)}" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="${auger_radius}" length="${auger_length}"/>
+      </geometry>
+      <material name="silver">
+        <color rgba="0.75 0.75 0.75 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${-(auger_length / 2)}" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="${auger_radius}" length="${auger_length}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 ${-(auger_length / 2)}" rpy="0 0 0"/>
+      <mass value="${auger_mass * 0.6}"/>
+      <!-- Cylinder: ixx=iyy=m(3r²+l²)/12, izz=mr²/2 -->
+      <!-- m=0.036, r=0.015, l=0.08 -->
+      <inertia ixx="0.0000212" ixy="0.0" ixz="0.0"
+               iyy="0.0000212" iyz="0.0"
+               izz="0.0000041"/>
+    </inertial>
+  </link>
+
+  <!--
+    Prismatic joint: vertical feed.
+    axis  = -Z (downward). lower=0 (retracted), upper=${auger_feed_travel} (50 mm).
+    effort = 50 N (sufficient for 1:10 regolith penetration).
+    velocity = 0.01 m/s (10 mm/s nominal feed rate).
+  -->
+  <joint name="auger_feed_joint" type="prismatic">
+    <parent link="auger_mount_link"/>
+    <child  link="auger_housing_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit lower="0" upper="${auger_feed_travel}"
+           effort="50.0" velocity="0.01"/>
+  </joint>
+
+  <!-- Auger bit — rotates within housing -->
+  <link name="auger_bit_link">
+    <visual>
+      <origin xyz="0 0 ${-(auger_length * 0.9 / 2)}" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="${auger_radius * 0.7}" length="${auger_length * 0.9}"/>
+      </geometry>
+      <material name="orange">
+        <color rgba="0.9 0.5 0.1 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${-(auger_length * 0.9 / 2)}" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="${auger_radius * 0.7}" length="${auger_length * 0.9}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 ${-(auger_length * 0.9 / 2)}" rpy="0 0 0"/>
+      <mass value="${auger_mass * 0.4}"/>
+      <!-- m=0.024, r=0.0105, l=0.072 -->
+      <inertia ixx="0.0000107" ixy="0.0" ixz="0.0"
+               iyy="0.0000107" iyz="0.0"
+               izz="0.0000013"/>
+    </inertial>
+  </link>
+
+  <!--
+    Continuous joint: drill spin.
+    axis  = -Z (right-hand rule; anticlockwise from above = forward auger cut).
+    effort   = 2.0 N·m (ample for 1:10 regolith).
+    velocity = 12.57 rad/s (~120 RPM nominal).
+  -->
+  <joint name="auger_rotation_joint" type="continuous">
+    <parent link="auger_housing_link"/>
+    <child  link="auger_bit_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="2.0" velocity="12.57"/>
+  </joint>
+
   <!-- ======================== Gazebo plugins ======================== -->
 
   <!--
@@ -194,8 +330,24 @@
       <joint_name>front_right_wheel_joint</joint_name>
       <joint_name>rear_left_wheel_joint</joint_name>
       <joint_name>rear_right_wheel_joint</joint_name>
+      <joint_name>auger_feed_joint</joint_name>
+      <joint_name>auger_rotation_joint</joint_name>
     </plugin>
   </gazebo>
+
+  <!--
+    Auger thermal plugin slot (Phase 3 / T-302).
+    Uncomment and fill in when resistive heating element is added to
+    auger_housing_link in T-302.  Placeholder kept here so the xacro
+    structure is clear and the link name is already established.
+  -->
+  <!--
+  <gazebo reference="auger_housing_link">
+    <plugin filename="gz-sim-thermal-system" name="gz::sim::systems::Thermal">
+      <!\-\- TODO T-302: configure thermal properties \-\->
+    </plugin>
+  </gazebo>
+  -->
 
   <!--
     IMU sensor plugin — publishes raw IMU data that robot_localization

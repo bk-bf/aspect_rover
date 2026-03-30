@@ -55,7 +55,7 @@ Current phase: **Phase 0** (2026 Q1). Completed items move to [`../archive/READM
 
 [PARALLEL A — start immediately, no shared deps]
 - [x] T-101 [`aspect_navigation`]: Nav2 stack integration (costmap, global + local planner)
-- [ ] T-102 [`aspect_description`]: Excavation auger URDF + articulation joints
+- [x] T-102 [`aspect_description`]: Excavation auger URDF + articulation joints
       — cylinder link (auger body) with continuous joint (rotation, ~120 RPM
         nominal) + prismatic joint (vertical feed, 0–10 mm/s range);
         box-geometry stub sufficient for Phase 1 — no mesh required to unblock T-103.
