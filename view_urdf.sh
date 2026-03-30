@@ -38,14 +38,21 @@ if [[ -f /opt/ros/jazzy/setup.bash ]]; then
     exit 1
 fi
 
-# ── guard: docker daemon must be running ─────────────────────────────────────
-if ! docker info &>/dev/null; then
-    echo "ERROR: Docker daemon is not running."
-    echo "  Start it:  sudo systemctl start docker"
-    echo "  Auto-start: sudo systemctl enable --now docker"
-    echo "  If you lack permission: sudo usermod -aG docker \$USER  (then re-login)"
-    exit 1
+# ── docker daemon lifecycle ───────────────────────────────────────────────────
+STARTED_DOCKER=false
+if ! docker info &>/dev/null 2>&1; then
+    echo "Docker daemon not running — starting it..."
+    sudo systemctl start docker
+    STARTED_DOCKER=true
 fi
+
+cleanup() {
+    if [[ "$STARTED_DOCKER" == true ]]; then
+        echo "Stopping Docker daemon (we started it)..."
+        sudo systemctl stop docker
+    fi
+}
+trap cleanup EXIT
 
 echo "Workspace : $WORKSPACE"
 echo "DISPLAY   : $DISPLAY"
