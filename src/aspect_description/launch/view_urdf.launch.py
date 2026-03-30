@@ -26,12 +26,11 @@ import xacro
 def generate_launch_description():
     """Generate launch description for URDF viewer."""
     description_pkg = get_package_share_directory('aspect_description')
-    urdf_file = os.path.join(description_pkg, 'urdf', 'aspect_rover.urdf.xacro')
+    urdf_file = os.path.join(
+        description_pkg, 'urdf', 'aspect_rover.urdf.xacro')
 
     # Process xacro into a robot_description string
     robot_description_content = xacro.process_file(urdf_file).toxml()
-
-    use_gui = LaunchConfiguration('use_gui')
 
     return LaunchDescription([
         DeclareLaunchArgument(
