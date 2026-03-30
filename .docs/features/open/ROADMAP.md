@@ -33,7 +33,7 @@ Current phase: **Phase 0** (2026 Q1). Completed items move to [`../archive/READM
 - [x] T-002 [`aspect_navigation`]: Expose `/goto_waypoint` service in `simple_waypoint_nav.py`
 - [ ] T-003 [all]: Add Apache 2.0 copyright headers to all source files missing them
 - [ ] T-004 [all]: Re-enable `ament_copyright` linter check once T-003 is done
-- [ ] T-010 [`aspect_navigation`]: Add nav2 costmap + basic global planner
+- [x] T-010 [`aspect_navigation`]: Add nav2 costmap + basic global planner
 
 ### Priority 3 — Phase 1: Simulation & AI (2026 Q2-Q3)
 

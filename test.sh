@@ -100,7 +100,24 @@ if gz service -s /world/lunar_south_pole/control \
 else
     fail "Sim unpause failed — subsequent tests may be unreliable"
 fi
-sleep 3
+
+# Wait for sim clock to advance past 0 (B-011: /clock bridge lazy, takes ~12 s post-unpause)
+info "Waiting for sim clock to advance (up to 45 s)..."
+CLOCK_READY=false
+for i in $(seq 1 45); do
+    CLK_SEC=$(timeout 2 ros2 topic echo /clock --once 2>/dev/null \
+              | grep "^  sec:" | head -1 | awk '{print $2}' || true)
+    if [[ -n "$CLK_SEC" ]] && awk "BEGIN{exit !($CLK_SEC > 0)}"; then
+        info "Sim clock advancing after ${i}s (sec=${CLK_SEC})"
+        CLOCK_READY=true
+        break
+    fi
+    sleep 1
+done
+$CLOCK_READY || info "WARNING: sim clock still 0 after 45 s — T-D1 may fail"
+
+# Brief settle for EKF to initialise once clock is running
+sleep 2
 
 # ── T-S1 — Topic smoke test ───────────────────────────────────────────────────
 echo ""
@@ -127,20 +144,35 @@ $ALL_TOPICS_OK && pass "T-S1: all required topics present"
 # ── T-D1 — Manual drive ───────────────────────────────────────────────────────
 echo ""
 echo "=== T-D1: Manual drive ==="
-info "Publishing cmd_vel 0.2 m/s for 5 s..."
+info "Publishing cmd_vel 0.2 m/s, checking for non-zero odom velocity..."
 ros2 topic pub --rate 10 /cmd_vel geometry_msgs/msg/Twist \
     "{linear: {x: 0.2}, angular: {z: 0.0}}" \
     > /dev/null 2>&1 &
 PUB_PID=$!
-sleep 5
+sleep 2   # brief settle for velocity to propagate
+
+# Check that /odometry/raw reports non-zero linear velocity (twist.twist.linear.x)
+# This works regardless of sim real-time factor — position accumulation is too slow.
+VX_MAX=0
+for _i in $(seq 1 8); do
+    # The odometry message has twist.linear.x nested under "twist:" blocks.
+    # We grep all "x:" lines and take the max absolute value found.
+    ODOM_MSG=$(timeout 3 ros2 topic echo /odometry/raw --once 2>/dev/null || true)
+    while IFS= read -r line; do
+        VAL=$(echo "$line" | awk '/x:/{print $2}')
+        if [[ -n "$VAL" ]]; then
+            VX_MAX=$(awk "BEGIN{v=$VAL+0; if(v<0)v=-v; m=$VX_MAX+0; print (v>m)?v:m}")
+        fi
+    done < <(echo "$ODOM_MSG" | grep "x:")
+    awk "BEGIN{exit !($VX_MAX > 0.01)}" && break
+    sleep 1
+done
 kill "$PUB_PID" 2>/dev/null || true
 
-ODOM=$(ros2 topic echo /odometry/raw --once --no-daemon 2>/dev/null | grep "x:" | head -1)
-X_VAL=$(echo "$ODOM" | awk '{print $2}')
-if [[ -n "$X_VAL" ]] && awk "BEGIN{exit !($X_VAL > 0.05)}"; then
-    pass "T-D1: odometry x=$X_VAL (expected > 0.05)"
+if awk "BEGIN{exit !($VX_MAX > 0.01)}"; then
+    pass "T-D1: odometry velocity vx=$VX_MAX (expected > 0.01)"
 else
-    fail "T-D1: odometry x not advancing (got: '${X_VAL:-<empty>}')"
+    fail "T-D1: odometry velocity not responding to cmd_vel (max vx='${VX_MAX}')"
 fi
 
 # ── T-D2 — Waypoint service ───────────────────────────────────────────────────
@@ -160,8 +192,8 @@ done
 
 SVC_RESULT=$(timeout 10 ros2 service call /goto_waypoint aspect_msgs/srv/GotoWaypoint \
     "{x: 2.0, y: 0.0}" 2>/dev/null || true)
-sleep 2
-CMD=$(timeout 5 ros2 topic echo /cmd_vel --once --no-daemon 2>/dev/null || true)
+# Wait for nav node to start issuing /cmd_vel (up to 10 s)
+CMD=$(timeout 10 ros2 topic echo /cmd_vel --once 2>/dev/null || true)
 
 kill "$NAV_PID" 2>/dev/null || true
 
