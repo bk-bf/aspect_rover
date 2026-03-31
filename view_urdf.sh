@@ -98,10 +98,17 @@ _uninstall() {
 }
 
 _status() {
-    HOST="$(hostname -s)"
+    # Prefer the real Tailscale MagicDNS FQDN (e.g. aspect.tail6d9fdf.ts.net)
+    HOST=""
+    if command -v tailscale &>/dev/null; then
+        HOST="$(tailscale status --peers=false --json 2>/dev/null \
+            | grep -o '"DNSName": *"[^"]*"' | head -1 \
+            | grep -o '"[^"]*"$' | tr -d '"' | sed 's/\.$//' || true)"
+    fi
+    [[ -z "$HOST" ]] && HOST="$(hostname -s)"
     echo ""
-    echo "  Bridge URL : ws://${HOST}.ts.net:${BRIDGE_PORT}"
-    echo "  Connect    : Foxglove Desktop → Open Connection → Foxglove WebSocket → ws://${HOST}.ts.net:${BRIDGE_PORT}"
+    echo "  Bridge URL : ws://${HOST}:${BRIDGE_PORT}"
+    echo "  Connect    : Foxglove Desktop → Open Connection → Foxglove WebSocket → ws://${HOST}:${BRIDGE_PORT}"
     echo ""
     systemctl is-active --quiet "$BRIDGE_SVC" \
         && echo "  bridge : running" || echo "  bridge : stopped"
