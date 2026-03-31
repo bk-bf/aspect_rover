@@ -83,17 +83,19 @@ docker compose -f .docker/docker-compose.yml exec aspect_dev bash
 ### Visual URDF validation (Foxglove Desktop — no display needed)
 
 ```bash
-# Install persistent background service (run once on VPS)
+# Install bridge for main (port 8765) and any worktrees (auto-assigned ports)
 bash view_urdf.sh install
+bash view_urdf.sh install --worktree t-102-auger-urdf
 
 # Lifecycle management
-bash view_urdf.sh status   # check bridge status and print connection URL
-bash view_urdf.sh restart  # after workspace changes
+bash view_urdf.sh status              # all services + ws:// URLs
+bash view_urdf.sh restart             # restart all
+bash view_urdf.sh restart --worktree <name>   # restart one
 bash view_urdf.sh stop
-bash view_urdf.sh logs     # tail bridge logs
+bash view_urdf.sh logs [--worktree <name>]    # tail bridge logs
 
 # Connect from Foxglove Desktop (laptop, any OS)
-# Open Connection → Foxglove WebSocket → ws://<machine>.ts.net:8765
+# Open Connection → Foxglove WebSocket → ws://<machine>.ts.net:<port>
 ```
 
 ---
