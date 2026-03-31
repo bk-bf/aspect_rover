@@ -83,10 +83,14 @@ docker compose -f .docker/docker-compose.yml exec aspect_dev bash
 ### Visual URDF validation (Foxglove Studio — no display needed)
 
 ```bash
-# On the VPS (or any host) — headless, no X11 required
-bash view_urdf.sh                        # main branch
-bash view_urdf.sh --worktree <name>      # feature branch
-bash view_urdf.sh --port 8766            # custom port (default: 8765)
+# Install persistent background services (run once on VPS)
+bash view_urdf.sh install
+
+# Lifecycle management
+bash view_urdf.sh status   # check bridge + UI status and print URLs
+bash view_urdf.sh restart  # after workspace changes
+bash view_urdf.sh stop
+bash view_urdf.sh logs     # tail bridge logs
 
 # Open in browser — plain HTTP, any browser, any OS
 # http://<machine>.ts.net:8080  →  Open Connection → ws://<machine>.ts.net:8765
