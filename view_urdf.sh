@@ -63,6 +63,7 @@ case "$OS_TYPE" in
                 echo "ERROR: \$DISPLAY not set — connect a display or use SSH -X."
                 exit 1
             }
+            xhost +local:docker &>/dev/null || true
             DISPLAY_ARGS+=(-e DISPLAY="$DISPLAY" -v /tmp/.X11-unix:/tmp/.X11-unix)
         fi
         [[ -d /dev/dri ]] && GPU_ARGS+=(--device /dev/dri)
@@ -92,6 +93,7 @@ if [[ "$OS_TYPE" == "Linux" ]] && ! $DOCKER info &>/dev/null 2>&1; then
 fi
 
 cleanup() {
+    xhost -local:docker &>/dev/null || true
     if [[ "$STARTED_DOCKER" == true ]]; then
         echo "Stopping Docker daemon (we started it)..."
         sudo systemctl stop docker docker.socket
