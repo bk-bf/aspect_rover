@@ -130,10 +130,11 @@ ExecStartPre=-${docker_bin} rm   ${svc}
 ExecStartPre=-/bin/sh -c '${docker_bin} ps -q --filter publish=${port} | xargs -r ${docker_bin} stop'
 ExecStart=${docker_bin} run --name ${svc} \
     -p 0.0.0.0:${port}:${port} \
+    -v ${SCRIPT_DIR}:/script \
     -v ${workspace}:/workspace \
     -w /workspace \
     aspect:jazzy \
-    bash /workspace/view_urdf.sh --inside-container ${port}
+    bash /script/view_urdf.sh --inside-container ${port}
 ExecStop=${docker_bin} stop ${svc}
 Restart=on-failure
 RestartSec=5
