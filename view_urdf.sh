@@ -24,6 +24,13 @@ done
 
 # ── inside container: build if needed, then launch ───────────────────────────
 if $INSIDE_CONTAINER; then
+    # Install foxglove_bridge if not yet in the image (pre-rebuild fallback)
+    if ! ros2 pkg list 2>/dev/null | grep -q foxglove_bridge; then
+        echo "==> Installing foxglove_bridge (one-time, rebuild image to skip)..."
+        apt-get update -qq && apt-get install -y -qq ros-jazzy-foxglove-bridge \
+            && rm -rf /var/lib/apt/lists/*
+    fi
+
     if [[ ! -f install/setup.bash ]]; then
         echo "==> No install/ found — building workspace (first run, ~2 min)..."
         colcon build --symlink-install 2>&1 | grep -E "^\[|^(Summary|ERROR)" || true
@@ -31,14 +38,7 @@ if $INSIDE_CONTAINER; then
     # shellcheck source=/dev/null
     set +u; source install/setup.bash; set -u
 
-    # Publish robot_description via robot_state_publisher, then start bridge
-    ros2 run robot_state_publisher robot_state_publisher \
-        --ros-args -p robot_description:="$(xacro \
-            install/aspect_description/share/aspect_description/urdf/aspect_rover.urdf.xacro)" &
-    RSP_PID=$!
-    # Give RSP a moment to advertise /robot_description before bridge connects
-    sleep 1
-    exec ros2 launch foxglove_bridge foxglove_bridge_launch.xml \
+    exec ros2 launch aspect_description foxglove_urdf.launch.py \
         port:="${FOXGLOVE_PORT}"
 fi
 
