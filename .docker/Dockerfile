@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-jazzy-robot-localization \
     ros-jazzy-navigation2 \
     ros-jazzy-nav2-bringup \
+    ros-jazzy-foxglove-bridge \
     xvfb \
     curl \
     git \

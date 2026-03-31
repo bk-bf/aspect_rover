@@ -1,4 +1,4 @@
-<!-- LOC cap: 166 (source: 830, ratio: 0.20, updated: 2026-03-30) -->
+<!-- LOC cap: 181 (source: 830, ratio: 0.20, updated: 2026-03-30) -->
 # AGENTS.md — ASPECT Rover Codebase Guide
 
 **Stack:** ROS 2 Jazzy · Gazebo Harmonic · Python · C++ · Docker · uv  
@@ -69,12 +69,33 @@ aspect/
 # Build image (~10 min first time)
 docker build -f .docker/Dockerfile -t aspect:jazzy .
 
-# GUI dev (Gazebo, RViz2) — recommended
+# GUI dev — VPS with NVIDIA GPU
 rocker --x11 --nvidia --user --volume $(pwd):/workspace aspect:jazzy
+
+# GUI dev — laptop (Intel/AMD, XWayland/X11, no NVIDIA)
+rocker --x11 --devices /dev/dri --user --volume $(pwd):/workspace aspect:jazzy
 
 # Headless
 docker compose -f .docker/docker-compose.yml up -d
 docker compose -f .docker/docker-compose.yml exec aspect_dev bash
+```
+
+### Visual URDF validation (Foxglove Desktop — no display needed)
+
+```bash
+# Install bridge for main (port 8765) and any worktrees (auto-assigned ports)
+bash view_urdf.sh install
+bash view_urdf.sh install --worktree t-102-auger-urdf
+
+# Lifecycle management
+bash view_urdf.sh status              # all services + ws:// URLs
+bash view_urdf.sh restart             # restart all
+bash view_urdf.sh restart --worktree <name>   # restart one
+bash view_urdf.sh stop
+bash view_urdf.sh logs [--worktree <name>]    # tail bridge logs
+
+# Connect from Foxglove Desktop (laptop, any OS)
+# Open Connection → Foxglove WebSocket → ws://<machine>.ts.net:<port>
 ```
 
 ---
