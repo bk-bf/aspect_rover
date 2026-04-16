@@ -20,7 +20,7 @@ regolith excavation ≥5 g/min at <50 W.
 - `rocker` — official OSRF GUI wrapper: `uv tool install rocker` (or `pip install rocker`)
 - Linux with X11 or Wayland (tested: Ubuntu 24.04, CachyOS/Arch)
 
-> **Why uv?** All Python tooling in this project uses [uv](https://docs.astral.sh/uv/)
+> All Python tooling in this project uses [uv](https://docs.astral.sh/uv/)
 > instead of `pip` / `python` directly. Install it once:
 > ```bash
 > curl -LsSf https://astral.sh/uv/install.sh | sh
